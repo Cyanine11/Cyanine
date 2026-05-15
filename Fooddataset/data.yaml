@@ -1,0 +1,31 @@
+path: D:\Cyanine\Fooddataset
+train: train/images
+val: valid_new/images
+nc: 19
+names:
+- 面条主食
+- 汉堡快餐
+- 三明治
+- 寿司卷物
+- 鸡肉料理（含炸鸡）
+- 烧串烤肉
+- 鸡蛋料理
+- 熟制海鲜
+- 刺身生食
+- 汤锅炖物
+- 蔬菜料理
+- 豆腐料理
+- 蛋糕甜品
+- 面包点心
+- 牛肉菜式
+- 猪肉菜式
+- 带馅早点
+- 炸货点心
+- 米饭主食
+roboflow:
+  workspace: local
+  project: food-calorie-detection
+  version: 1
+  license: CC BY 4.0
+  url: local
+test: test/images
