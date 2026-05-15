@@ -33,7 +33,6 @@ predict.py
 predict2.py
 final_test.py
 split_testset.py
-train.py
 
 # 配置（仅根目录）
 /food.yaml
