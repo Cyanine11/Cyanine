@@ -1,21 +1,57 @@
-import os
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-
 from ultralytics import YOLO
 
-model = YOLO("yolov8n.pt")
+model = YOLO("yolov8m.pt")
 
 model.train(
-    data="UECFOOD256.v1-japon.yolov8/data.yaml",
-    epochs=10,
-    imgsz=480,
-    batch=8,           # 这里改成8，比2快4倍，比16更稳
-    device="cpu",
-    workers=4,         # 改成4，和batch匹配，避免数据加载瓶颈
-    amp=False,         # CPU上不开启混合精度，避免不稳定
-    optimizer="AdamW", # 换更稳定的优化器，弥补batch稍小的不足
-    lr0=0.001,         # 调低学习率，配合小batch，训练更稳
-    patience=5,
-    project="food_train",
-    name="exp_optimal"
+    data="/root/autodl-tmp/Fooddataset/data.yaml",
+
+    epochs=120,
+    batch=24,
+    imgsz=640,
+
+    device="cuda",
+    amp=True,
+
+    workers=8,
+    cache="disk",
+
+    patience=25,
+    save_period=10,
+    seed=42,
+
+    optimizer="SGD",
+
+    lr0=0.004,
+    lrf=0.05,
+    cos_lr=True,
+
+    warmup_epochs=3,
+
+    weight_decay=0.0005,
+
+    hsv_h=0.015,
+    hsv_s=0.35,
+    hsv_v=0.25,
+
+    fliplr=0.5,
+
+    scale=0.5,
+    translate=0.1,
+
+    mosaic=1.0,
+    mixup=0.03,
+    copy_paste=0.0,
+
+    close_mosaic=15,
+
+    box=7.5,
+    cls=0.5,
+    dfl=1.5,
+
+    verbose=True,
+    plots=True,
+
+    project="food_detect_safe",
+    name="yolov8m_final_v5",
+    exist_ok=True
 )
