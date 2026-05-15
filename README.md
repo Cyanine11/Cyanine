@@ -66,7 +66,7 @@ python app.py
 基于 YOLOv8n 预训练模型微调。
 
 ```python
-model = YOLO("yolov8n.pt")
+model = YOLO("yolov8mm.pt")
 model.train(
     data="Fooddataset/data.yaml",
     epochs=10,
