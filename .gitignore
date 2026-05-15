@@ -11,8 +11,7 @@ UECFOOD256.v1-japon.yolov8/
 /Test111/
 /Test.cache
 tt/
-model_result/
-model_result.zip
+/model_result.zip
 detect_result.zip
 runs/
 /images
