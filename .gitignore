@@ -1,5 +1,5 @@
-# 模型文件 (太大)
-*.pt
+# 模型文件（使用 Git LFS 管理）
+# *.pt 由 LFS 追踪
 
 # 数据集（分批添加）
 Fooddataset_final/
