@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>食物卡路里识别系统</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: "Microsoft YaHei", "微软雅黑", "PingFang SC", sans-serif;
+    background: linear-gradient(160deg, #f3eeff 0%, #faf8ff 35%, #ede8ff 70%, #f5f0ff 100%);
+    color: #333;
+    min-height: 100vh;
+    position: relative;
+  }
+
+  /* 背景装饰圆形 */
+  .bg-blob {
+    position: fixed; border-radius: 50%; filter: blur(150px);
+    opacity: 0.30; pointer-events: none; z-index: 0;
+  }
+  .bg-blob-1 { width: 500px; height: 500px; background: #c4b5fd; top: -120px; right: -140px; }
+  .bg-blob-2 { width: 400px; height: 400px; background: #ddd6fe; bottom: -100px; left: -100px; }
+
+  /* ===== 导航栏 ===== */
+  .navbar {
+    background: rgba(255,255,255,0.80);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(139, 92, 246, 0.08);
+    padding: 14px 0;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .navbar-inner {
+    width: 720px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-logo { font-size: 17px; font-weight: 700; color: #3b1f8a; letter-spacing: 0.5px; }
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .nav-user { font-size: 13px; color: #888; }
+  .nav-user span { color: #8b5cf6; font-weight: 600; }
+
+  .btn-sm {
+    background: rgba(255,255,255,0.7);
+    border: 1px solid #ddd6fe;
+    color: #7c6faa;
+    padding: 5px 14px; border-radius: 6px;
+    font-size: 12px; cursor: pointer; font-family: inherit;
+    transition: border-color 0.2s, color 0.2s, transform 0.15s;
+  }
+  .btn-sm:hover { border-color: #8b5cf6; color: #8b5cf6; transform: scale(1.04); }
+
+  /* ===== 主容器 ===== */
+  .main-container { width: 720px; margin: 0 auto; position: relative; z-index: 1; }
+
+  /* ===== 上传区 ===== */
+  .upload-section { margin-top: 32px; }
+  .section-title { font-size: 15px; font-weight: 700; color: #3b1f8a; margin-bottom: 14px; padding-left: 2px; }
+
+  .upload-card {
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 2px dashed #c4b5fd;
+    border-radius: 16px;
+    min-height: 200px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
+    position: relative; overflow: hidden;
+    animation: breathe 2.5s ease-in-out infinite;
+  }
+  .upload-card:hover { border-color: #8b5cf6; background: rgba(255,255,255,0.95); box-shadow: 0 4px 20px rgba(139,92,246,0.08); }
+  .upload-card.drag-over { border-color: #8b5cf6; background: rgba(245,243,255,0.95); border-style: solid; }
+
+  @keyframes breathe {
+    0%, 100% { border-color: #c4b5fd; }
+    50% { border-color: #ddd6fe; }
+  }
+
+  .upload-placeholder { text-align: center; }
+  .upload-icon { font-size: 36px; margin-bottom: 10px; }
+  .upload-text { font-size: 14px; color: #8b7fbf; margin-bottom: 4px; }
+  .upload-hint { font-size: 12px; color: #c4b5fd; }
+
+  .upload-card input[type="file"] { display: none; }
+
+  .upload-card.has-image { border-style: solid; border-color: #ddd6fe; cursor: default; animation: none; }
+  .upload-card.has-image .upload-placeholder { display: none; }
+  .upload-card.has-image .upload-image-wrap { display: flex; width: 100%; height: 100%; }
+
+  .upload-image-wrap {
+    display: none; align-items: center; justify-content: center;
+    position: relative; min-height: 200px;
+  }
+  .upload-image-wrap img {
+    max-width: 100%; max-height: 340px; object-fit: contain; display: block;
+    animation: imgFadeIn 0.4s ease-out;
+  }
+  @keyframes imgFadeIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+
+  .upload-actions { position: absolute; bottom: 12px; right: 14px; display: flex; gap: 8px; }
+
+  /* ===== 阈值滑块 ===== */
+  .threshold-section {
+    margin-top: 20px;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(139,92,246,0.08);
+    border-radius: 14px; padding: 18px 20px;
+    box-shadow: 0 2px 12px rgba(139,92,246,0.04);
+    display: none;
+    animation: cardSlideUp 0.35s ease-out;
+  }
+  .threshold-section.active { display: block; }
+  .threshold-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .threshold-label { font-size: 13px; font-weight: 600; color: #6554a0; }
+  .threshold-value { font-size: 13px; font-weight: 700; color: #8b5cf6; background: #f3eeff; padding: 3px 10px; border-radius: 6px; }
+  .threshold-slider { width: 100%; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: #e4def8; outline: none; }
+  .threshold-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #8b5cf6; cursor: pointer; border: 3px solid #fff; box-shadow: 0 1px 6px rgba(139,92,246,0.25); transition: transform 0.15s; }
+  .threshold-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .threshold-marks { display: flex; justify-content: space-between; font-size: 11px; color: #c4b5fd; margin-top: 6px; }
+
+  /* ===== 识别按钮 ===== */
+  .action-bar { margin-top: 20px; text-align: center; display: none; }
+  .action-bar.active { display: block; animation: cardSlideUp 0.4s ease-out; }
+
+  .btn-detect {
+    padding: 13px 48px; border: none; border-radius: 10px;
+    font-size: 16px; font-weight: 600; font-family: inherit;
+    color: #fff;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    cursor: pointer;
+    transition: background 0.25s, transform 0.15s, box-shadow 0.25s;
+    letter-spacing: 1px;
+  }
+  .btn-detect:hover {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.30);
+    transform: scale(1.02);
+  }
+  .btn-detect:active { transform: scale(0.98); }
+  .btn-detect:disabled { background: #d4cee8; cursor: not-allowed; }
+
+  /* ===== 加载 ===== */
+  .loading-bar { margin-top: 16px; text-align: center; display: none; }
+  .loading-bar.active { display: block; }
+  .loading-spinner { display: inline-block; width: 28px; height: 28px; border: 3px solid #e4def8; border-top-color: #8b5cf6; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 14px; color: #a78bfa; vertical-align: middle; }
+
+  /* ===== 结果区 ===== */
+  .result-section { margin-top: 24px; display: none; }
+  .result-section.active { display: block; }
+
+  .result-card {
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(139,92,246,0.08);
+    border-radius: 16px; padding: 24px;
+    box-shadow: 0 2px 16px rgba(139,92,246,0.06);
+    animation: cardSlideUp 0.45s ease-out;
+  }
+
+  @keyframes cardSlideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== 分栏对比 ===== */
+  .compare-row { display: flex; gap: 14px; margin-bottom: 16px; }
+  .compare-col { flex: 1; min-width: 0; }
+  .compare-label { font-size: 12px; font-weight: 600; color: #a493c8; margin-bottom: 8px; text-align: center; }
+  .compare-img-wrap {
+    background: #faf8fe; border: 1px solid #e4def8; border-radius: 10px;
+    overflow: hidden; display: flex; justify-content: center; align-items: center;
+    min-height: 160px;
+  }
+  .compare-img-wrap img, .compare-img-wrap canvas { max-width: 100%; max-height: 240px; display: block; object-fit: contain; }
+
+  /* ===== 信息卡片 ===== */
+  .info-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .info-card {
+    background: #faf8fe; border: 1px solid #e4def8; border-radius: 10px;
+    padding: 14px 12px; text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .info-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(139,92,246,0.08); }
+
+  .info-card-icon { font-size: 20px; margin-bottom: 4px; }
+  .info-card-val { font-size: 20px; font-weight: 700; color: #8b5cf6; margin-bottom: 2px; }
+  .info-card-label { font-size: 12px; color: #a78bfa; }
+
+  .result-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-high { background: #ecfdf5; color: #059669; }
+  .badge-mid { background: #fffbeb; color: #d97706; }
+  .badge-low { background: #fef2f2; color: #dc2626; }
+
+  /* ===== 营养 ===== */
+  .nutrition-section { margin-top: 20px; border-top: 1px solid #e4def8; padding-top: 16px; }
+  .nutrition-title { font-size: 14px; font-weight: 700; color: #3b1f8a; margin-bottom: 12px; }
+  .nutrition-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .nutrition-item { background: #faf8fe; border-radius: 10px; padding: 12px 10px; text-align: center; border: 1px solid #e4def8; transition: transform 0.2s; }
+  .nutrition-item:hover { transform: translateY(-2px); }
+  .nutrition-value { font-size: 18px; font-weight: 700; color: #8b5cf6; margin-bottom: 2px; }
+  .nutrition-unit { font-size: 11px; color: #a78bfa; }
+  .nutrition-label { font-size: 12px; color: #888; }
+
+  .portion-info {
+    background: #faf8fe; border: 1px solid #e4def8; border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .portion-icon { font-size: 22px; flex-shrink: 0; }
+  .portion-text { font-size: 13px; color: #6554a0; line-height: 1.6; }
+  .portion-text strong { color: #8b5cf6; }
+
+  .exercise-row { display: flex; gap: 10px; }
+  .exercise-item { flex: 1; background: #faf8fe; border: 1px solid #e4def8; border-radius: 10px; padding: 12px; text-align: center; transition: transform 0.2s; }
+  .exercise-item:hover { transform: translateY(-2px); }
+  .exercise-icon { font-size: 20px; margin-bottom: 4px; }
+  .exercise-label { font-size: 12px; color: #888; margin-bottom: 2px; }
+  .exercise-time { font-size: 16px; font-weight: 700; color: #7c3aed; }
+  .exercise-time span { font-size: 12px; font-weight: 400; color: #a78bfa; }
+
+  .no-result { text-align: center; padding: 20px; }
+  .no-result-icon { font-size: 36px; margin-bottom: 8px; }
+  .no-result-text { font-size: 14px; color: #a78bfa; }
+
+  /* ===== 错误提示 ===== */
+  .error-toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: #fff; border: 1px solid #fecaca; color: #991b1b;
+    padding: 12px 24px; border-radius: 8px; font-size: 13px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08); z-index: 9999; display: none;
+  }
+  .error-toast.show { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="bg-blob bg-blob-1"></div>
+<div class="bg-blob bg-blob-2"></div>
+
+<div class="navbar">
+  <div class="navbar-inner">
+    <div class="nav-logo">食物卡路里识别</div>
+    <div class="nav-right">
+      <div class="nav-user">用户：<span id="displayName"></span></div>
+      <button class="btn-sm" onclick="window.location.href='/history'">历史记录</button>
+      <button class="btn-sm" onclick="doLogout()">退出</button>
+    </div>
+  </div>
+</div>
+
+<div class="main-container">
+
+  <!-- 上传区 -->
+  <div class="upload-section">
+    <div class="section-title">上传食物图片</div>
+    <div class="upload-card" id="uploadCard">
+      <div class="upload-placeholder">
+        <div class="upload-icon">&#128247;</div>
+        <div class="upload-text">点击上传或拖拽图片到此处</div>
+        <div class="upload-hint">支持 JPG / JPEG / PNG 格式</div>
+      </div>
+      <div class="upload-image-wrap" id="uploadImageWrap">
+        <img id="uploadThumb" src="" alt="">
+        <div class="upload-actions">
+          <button class="btn-sm" onclick="event.stopPropagation(); openPreview()">预览</button>
+          <button class="btn-sm" onclick="event.stopPropagation(); clearImage()" style="border-color:#fecaca;color:#dc2626;">清空</button>
+        </div>
+      </div>
+      <input type="file" id="fileInput" accept=".jpg,.jpeg,.png">
+    </div>
+  </div>
+
+  <!-- 置信度阈值 -->
+  <div class="threshold-section" id="thresholdSection">
+    <div class="threshold-header">
+      <span class="threshold-label">置信度阈值</span>
+      <span class="threshold-value" id="thresholdVal">0.30</span>
+    </div>
+    <input type="range" class="threshold-slider" id="thresholdSlider" min="0.2" max="0.8" step="0.05" value="0.30">
+    <div class="threshold-marks"><span>0.2</span><span>0.3</span><span>0.4</span><span>0.5</span><span>0.6</span><span>0.7</span><span>0.8</span></div>
+  </div>
+
+  <!-- 识别按钮 -->
+  <div class="action-bar" id="actionBar">
+    <button class="btn-detect" id="btnDetect" onclick="doDetect()">开始识别</button>
+  </div>
+
+  <!-- 加载中 -->
+  <div class="loading-bar" id="loadingBar">
+    <div class="loading-spinner"></div>
+    <span class="loading-text">正在识别中...</span>
+  </div>
+
+  <!-- 检测结果 -->
+  <div class="result-section" id="resultSection">
+    <div class="result-card">
+      <div class="section-title">检测结果</div>
+      <div id="resultContent"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="error-toast" id="errorToast"></div>
+
+<script>
+  (function () {
+    var name = localStorage.getItem("food_calorie_username");
+    if (!name) { window.location.href = "/"; return; }
+    document.getElementById("displayName").textContent = name;
+  })();
+  function doLogout() { localStorage.removeItem("food_calorie_username"); window.location.href = "/"; }
+
+  var uploadCard = document.getElementById("uploadCard");
+  var fileInput = document.getElementById("fileInput");
+  var uploadImageWrap = document.getElementById("uploadImageWrap");
+  var uploadThumb = document.getElementById("uploadThumb");
+  var thresholdSection = document.getElementById("thresholdSection");
+  var thresholdSlider = document.getElementById("thresholdSlider");
+  var thresholdVal = document.getElementById("thresholdVal");
+  var actionBar = document.getElementById("actionBar");
+  var btnDetect = document.getElementById("btnDetect");
+  var loadingBar = document.getElementById("loadingBar");
+  var resultSection = document.getElementById("resultSection");
+  var resultContent = document.getElementById("resultContent");
+  var errorToast = document.getElementById("errorToast");
+  var tempId = null, selectedFile = null;
+
+  thresholdSlider.addEventListener("input", function () { thresholdVal.textContent = parseFloat(this.value).toFixed(2); });
+
+  uploadCard.addEventListener("click", function () { if (!uploadCard.classList.contains("has-image")) fileInput.click(); });
+  fileInput.addEventListener("change", function () { if (fileInput.files.length > 0) handleFile(fileInput.files[0]); });
+  uploadCard.addEventListener("dragover", function (e) { e.preventDefault(); uploadCard.classList.add("drag-over"); });
+  uploadCard.addEventListener("dragleave", function () { uploadCard.classList.remove("drag-over"); });
+  uploadCard.addEventListener("drop", function (e) { e.preventDefault(); uploadCard.classList.remove("drag-over"); if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]); });
+
+  function handleFile(file) {
+    var allowed = ["image/jpeg", "image/png", "image/jpg"];
+    if (allowed.indexOf(file.type) === -1) { showError("仅支持 JPG / JPEG / PNG 格式的图片"); return; }
+    selectedFile = file;
+    var reader = new FileReader();
+    reader.onload = function (e) {
+      uploadThumb.src = e.target.result;
+      uploadCard.classList.add("has-image");
+      thresholdSection.classList.add("active");
+      actionBar.classList.add("active");
+      resultSection.classList.remove("active");
+    };
+    reader.readAsDataURL(file);
+    var fd = new FormData(); fd.append("image", file);
+    fetch("/upload", { method: "POST", body: fd }).then(function (r) { return r.json(); }).then(function (data) {
+      if (data.temp_id) { tempId = data.temp_id; sessionStorage.setItem("preview_temp_id", tempId); }
+    });
+  }
+
+  function clearImage() { selectedFile = null; tempId = null; fileInput.value = ""; uploadThumb.src = ""; uploadCard.classList.remove("has-image"); thresholdSection.classList.remove("active"); actionBar.classList.remove("active"); resultSection.classList.remove("active"); sessionStorage.removeItem("preview_temp_id"); }
+  function openPreview() { if (tempId) { sessionStorage.setItem("preview_temp_id", tempId); window.open("/preview", "_blank"); } }
+
+  function doDetect() {
+    if (!tempId) { showError("请先上传图片"); return; }
+    btnDetect.disabled = true; loadingBar.classList.add("active"); resultSection.classList.remove("active");
+    var fd = new FormData(); fd.append("temp_id", tempId); fd.append("conf", thresholdSlider.value);
+    fetch("/predict", { method: "POST", body: fd }).then(function (r) { return r.json(); }).then(function (data) {
+      loadingBar.classList.remove("active"); btnDetect.disabled = false;
+      if (data.error) { showError(data.error); return; }
+      renderResult(data);
+    }).catch(function () { loadingBar.classList.remove("active"); btnDetect.disabled = false; showError("识别失败，请检查服务是否正常运行"); });
+  }
+
+  function renderResult(data) {
+    var top = data.top_detection;
+    if (!top) { resultContent.innerHTML = '<div class="no-result"><div class="no-result-icon">&#128270;</div><div class="no-result-text">未检测到食物目标，请尝试调整图片</div></div>'; resultSection.classList.add("active"); return; }
+    var confVal = (top.confidence * 100).toFixed(1);
+    var badgeClass = confVal >= 70 ? "badge-high" : (confVal >= 50 ? "badge-mid" : "badge-low");
+    var canvasId = "detectCanvas_" + Date.now();
+    var html = '<div class="compare-row"><div class="compare-col"><div class="compare-label">原图</div><div class="compare-img-wrap"><img src="' + uploadThumb.src + '" alt="原图"></div></div><div class="compare-col"><div class="compare-label">检测结果</div><div class="compare-img-wrap"><canvas id="' + canvasId + '"></canvas></div></div></div>';
+    var portionKcal = 0, portionProtein = 0, portionFat = 0, portionCarbs = 0;
+    if (top.nutrition) { var n = top.nutrition; portionKcal = Math.round(n.kcal * n.portion / 100); portionProtein = (n.protein * n.portion / 100).toFixed(1); portionFat = (n.fat * n.portion / 100).toFixed(1); portionCarbs = (n.carbs * n.portion / 100).toFixed(1); }
+    html += '<div class="info-cards"><div class="info-card"><div class="info-card-icon">&#127798;</div><div class="info-card-val">' + top.class_name + '</div><div class="info-card-label">食物类别</div></div><div class="info-card"><div class="info-card-icon">&#127919;</div><div class="info-card-val">' + confVal + '%</div><div class="info-card-label">置信度 <span class="result-badge ' + badgeClass + '" style="margin-left:4px;">' + getBadgeLabel(confVal) + '</span></div></div><div class="info-card"><div class="info-card-icon">&#128293;</div><div class="info-card-val">' + portionKcal + ' kcal</div><div class="info-card-label">每份卡路里</div></div></div>';
+    if (top.nutrition) { html += '<div class="nutrition-section"><div class="nutrition-title">营养信息（每 100g）</div><div class="nutrition-grid"><div class="nutrition-item"><div class="nutrition-value">' + n.kcal + '</div><div class="nutrition-unit">kcal</div><div class="nutrition-label">卡路里</div></div><div class="nutrition-item"><div class="nutrition-value">' + n.protein.toFixed(1) + '</div><div class="nutrition-unit">g</div><div class="nutrition-label">蛋白质</div></div><div class="nutrition-item"><div class="nutrition-value">' + n.fat.toFixed(1) + '</div><div class="nutrition-unit">g</div><div class="nutrition-label">脂肪</div></div><div class="nutrition-item"><div class="nutrition-value">' + n.carbs.toFixed(1) + '</div><div class="nutrition-unit">g</div><div class="nutrition-label">碳水</div></div></div><div class="portion-info"><div class="portion-icon">&#127860;</div><div class="portion-text">标准参考份量：<strong>' + n.portion + n.portion_unit + '</strong> &nbsp;|&nbsp; 每份含：<strong>' + portionKcal + ' kcal</strong> | 蛋白质 ' + portionProtein + 'g | 脂肪 ' + portionFat + 'g | 碳水 ' + portionCarbs + 'g</div></div><div class="exercise-row"><div class="exercise-item"><div class="exercise-icon">&#127939;</div><div class="exercise-label">步行消耗</div><div class="exercise-time">' + Math.round(portionKcal / 4) + ' <span>分钟</span></div></div><div class="exercise-item"><div class="exercise-icon">&#127939;&#8205;&#9794;</div><div class="exercise-label">慢跑消耗</div><div class="exercise-time">' + Math.round(portionKcal / 8) + ' <span>分钟</span></div></div></div></div>'; }
+    resultContent.innerHTML = html; resultSection.classList.add("active");
+    if (top.bbox) { drawBBoxOnImage(canvasId, uploadThumb, top.bbox, top.class_name, confVal); }
+    saveToHistory(top.class_name, confVal, top.nutrition, uploadThumb.src);
+  }
+
+  function drawBBoxOnImage(canvasId, imgEl, bbox, className, conf) {
+    var canvas = document.getElementById(canvasId); if (!canvas) return;
+    var ctx = canvas.getContext("2d"); var img = new Image();
+    img.onload = function () { var iw = img.naturalWidth, ih = img.naturalHeight; var maxW = 320; var scale = Math.min(maxW / iw, 240 / ih, 1); var w = Math.round(iw * scale), h = Math.round(ih * scale); canvas.width = w; canvas.height = h; ctx.drawImage(img, 0, 0, w, h); var x1 = Math.round(bbox[0] * scale), y1 = Math.round(bbox[1] * scale), x2 = Math.round(bbox[2] * scale), y2 = Math.round(bbox[3] * scale); ctx.strokeStyle = "#8b5cf6"; ctx.lineWidth = 2.5; ctx.strokeRect(x1, y1, x2 - x1, y2 - y1); var label = className + " " + conf + "%"; ctx.font = "bold 13px Microsoft YaHei, sans-serif"; var textW = ctx.measureText(label).width + 10, textH = 22; var labelY = y1 - textH - 4; if (labelY < 0) labelY = y1 + 4; ctx.fillStyle = "#8b5cf6"; ctx.beginPath(); ctx.roundRect(x1, labelY, textW, textH, 4); ctx.fill(); ctx.fillStyle = "#fff"; ctx.fillText(label, x1 + 5, labelY + 15); };
+    img.src = imgEl.src;
+  }
+
+  function getBadgeLabel(v) { return v >= 70 ? "高置信度" : (v >= 50 ? "中等置信度" : "低置信度"); }
+
+  function saveToHistory(foodName, confVal, nutrition, thumbSrc) {
+    var records = JSON.parse(localStorage.getItem("food_calorie_history") || "[]"); records.unshift({ id: Date.now(), time: new Date().toLocaleString("zh-CN"), foodName: foodName, confidence: confVal, nutrition: nutrition, thumb: thumbSrc }); if (records.length > 50) records = records.slice(0, 50); localStorage.setItem("food_calorie_history", JSON.stringify(records));
+  }
+
+  function showError(msg) { errorToast.textContent = msg; errorToast.classList.add("show"); setTimeout(function () { errorToast.classList.remove("show"); }, 2500); }
+</script>
+
+</body>
+</html>

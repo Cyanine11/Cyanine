@@ -1,0 +1,52 @@
+# 模型文件 (太大)
+*.pt
+
+# 数据集
+Fooddataset/
+Fooddataset_final/
+merged_auto140_dataset/
+UECFOOD256.v1-japon.yolov8/
+
+# 临时/测试文件
+Test/
+Test111/
+Test.cache
+tt/
+model_result/
+model_result.zip
+detect_result.zip
+runs/
+images
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# IDE
+.idea/
+.vscode/
+
+# 零散脚本
+11.py
+111.py
+pp.py
+predict.py
+predict2.py
+final_test.py
+split_testset.py
+train.py
+
+# 配置
+food.yaml
+data.yaml
+
+# Claude 配置
+.claude/
+
+# 根目录规划文件
+task_plan.md
+findings.md
+progress.md
+
+# 临时上传文件
+**/static/upload/

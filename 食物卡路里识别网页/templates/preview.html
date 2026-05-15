@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>图片预览 — 食物卡路里识别</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Microsoft YaHei", "微软雅黑", "PingFang SC", sans-serif;
+    background: linear-gradient(160deg, #f3eeff 0%, #faf8ff 35%, #ede8ff 70%, #f5f0ff 100%);
+    min-height: 100vh; display: flex; flex-direction: column;
+    position: relative; overflow: hidden;
+  }
+
+  .bg-blob {
+    position: fixed; border-radius: 50%; filter: blur(140px);
+    opacity: 0.30; pointer-events: none; z-index: 0;
+  }
+  .bg-blob-1 { width: 450px; height: 450px; background: #c4b5fd; top: -100px; right: -120px; }
+  .bg-blob-2 { width: 350px; height: 350px; background: #ddd6fe; bottom: -100px; left: -80px; }
+
+  .preview-nav {
+    background: rgba(255,255,255,0.80); backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(139,92,246,0.08);
+    padding: 14px 24px; display: flex; align-items: center; justify-content: space-between;
+    position: relative; z-index: 1;
+  }
+  .preview-nav .title { font-size: 16px; font-weight: 700; color: #3b1f8a; }
+
+  .btn-back {
+    background: rgba(255,255,255,0.7); border: 1px solid #ddd6fe; color: #7c6faa;
+    padding: 6px 16px; border-radius: 6px; font-size: 13px; cursor: pointer;
+    font-family: inherit; transition: border-color 0.2s, color 0.2s;
+  }
+  .btn-back:hover { border-color: #8b5cf6; color: #8b5cf6; }
+
+  .preview-body {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    padding: 32px; position: relative; z-index: 1;
+  }
+
+  .preview-img-card {
+    background: rgba(255,255,255,0.88); backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 16px; padding: 20px;
+    box-shadow: 0 4px 24px rgba(139,92,246,0.10);
+    border: 1px solid rgba(139,92,246,0.08);
+    max-width: 90vw; max-height: 80vh;
+    animation: cardIn 0.5s ease-out;
+  }
+  @keyframes cardIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+
+  .preview-img-card img { max-width: 100%; max-height: 70vh; border-radius: 8px; display: block; }
+  .preview-hint { margin-top: 12px; text-align: center; font-size: 12px; color: #c4b5fd; }
+</style>
+</head>
+<body>
+
+<div class="bg-blob bg-blob-1"></div>
+<div class="bg-blob bg-blob-2"></div>
+
+<div class="preview-nav">
+  <span class="title">图片预览</span>
+  <button class="btn-back" onclick="window.close()">关闭</button>
+</div>
+
+<div class="preview-body">
+  <div class="preview-img-card">
+    <img id="previewImg" src="" alt="预览图片">
+    <div class="preview-hint" id="hintText"></div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var tempId = sessionStorage.getItem("preview_temp_id");
+    var img = document.getElementById("previewImg");
+    var hint = document.getElementById("hintText");
+    if (tempId) { img.src = "/temp/" + tempId; hint.textContent = "上传时间：" + new Date().toLocaleString("zh-CN"); }
+    else { img.alt = "无预览图片"; hint.textContent = "未找到待预览的图片，请先上传"; hint.style.color = "#a78bfa"; }
+  })();
+</script>
+
+</body>
+</html>
